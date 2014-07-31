@@ -103,6 +103,9 @@ public class TelephonyProvider extends ContentProvider
     private static final String OTA_UPDATED_APNS_PATH = "misc/apns-conf.xml";
     private static final String OLD_APNS_PATH = "etc/old-apns-conf.xml";
 
+    private static final String READ_ONLY = "read_only";
+    private static final String LOCALIZED_NAME = "localized_name";
+
     private static final UriMatcher s_urlMatcher = new UriMatcher(UriMatcher.NO_MATCH);
 
     private static final ContentValues s_currentNullMap;
@@ -297,6 +300,9 @@ public class TelephonyProvider extends ContentProvider
                     "mtu INTEGER DEFAULT 0," +
                     "edited INTEGER DEFAULT " + Telephony.Carriers.UNEDITED + "," +
                     "user_visible BOOLEAN DEFAULT 1," +
+                    "read_only BOOLEAN DEFAULT 0," +
+                    "ppp_number TEXT DEFAULT ''," +
+                    "localized_name TEXT DEFAULT ''," +
                     // Uniqueness collisions are used to trigger merge code so if a field is listed
                     // here it means we will accept both (user edited + new apn_conf definition)
                     // Columns not included in UNIQUE constraint: name, current, edited,
@@ -969,6 +975,10 @@ public class TelephonyProvider extends ContentProvider
             map.put(Telephony.Carriers.MCC, mcc);
             map.put(Telephony.Carriers.MNC, mnc);
             map.put(Telephony.Carriers.NAME, parser.getAttributeValue(null, "carrier"));
+            map.put(mContext.getString(R.string.ppp_number),
+                    parser.getAttributeValue(null, "ppp_number"));
+            map.put(mContext.getString(R.string.localized_name),
+                    parser.getAttributeValue(null, "localized_name"));
 
             // do not add NULL to the map so that default values can be inserted in db
             addStringAttribute(parser, "apn", map, Telephony.Carriers.APN);
