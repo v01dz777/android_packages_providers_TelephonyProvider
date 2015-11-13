@@ -131,6 +131,8 @@ public class TelephonyProvider extends ContentProvider
         CARRIERS_UNIQUE_FIELDS.add(Telephony.Carriers.PROFILE_ID);
     }
 
+    private static final int UNIQUE_KEY_SIZE = 16;
+
     static {
         s_urlMatcher.addURI("telephony", "carriers", URL_TELEPHONY);
         s_urlMatcher.addURI("telephony", "carriers/current", URL_CURRENT);
@@ -296,10 +298,10 @@ public class TelephonyProvider extends ContentProvider
                     // Uniqueness collisions are used to trigger merge code so if a field is listed
                     // here it means we will accept both (user edited + new apn_conf definition)
                     // Columns not included in UNIQUE constraint: name, current, edited,
-                    // user, server, password, authtype, type, protocol, roaming_protocol, sub_id,
-                    // modem_cognitive, max_conns, wait_time, max_conns_time, mtu, bearer_bitmask,
-                    // user_visible
-                    "UNIQUE (numeric, mcc, mnc, apn, proxy, port, mmsproxy, mmsport, mmsc," +
+                    // user, server, password, authtype, type, sub_id,
+                    // modem_cognitive, max_conns, wait_time, max_conns_time, mtu, bearer_bitmask
+                    // Change UNIQUE_KEY_SIZE if the UNIQUE set is changed
+                    "UNIQUE (numeric, mcc, mnc, apn, proxy, port, mmsproxy, mmsport, mmsc, protocol, roaming_protocol," +
                     "carrier_enabled, bearer, mvno_type, mvno_match_data, profile_id));");
             if (DBG) log("dbh.createCarriersTable:-");
         }
@@ -1318,10 +1320,11 @@ public class TelephonyProvider extends ContentProvider
                     Telephony.Carriers.BEARER_BITMASK,
                     Telephony.Carriers.PROFILE_ID };
             String selection = "numeric=? AND mcc=? AND mnc=? AND apn=? AND proxy=? AND port=? "
-                    + "AND mmsproxy=? AND mmsport=? AND mmsc=? AND carrier_enabled=? AND bearer=? "
-                    + "AND mvno_type=? AND mvno_match_data=? AND profile_id=?";
+                    + "AND mmsproxy=? AND mmsport=? AND mmsc=? AND protocol=? AND roaming_protocol=?"
+                    + "AND carrier_enabled=? AND bearer=? AND mvno_type=? AND mvno_match_data=? AND profile_id=?";
+
             int i = 0;
-            String[] selectionArgs = new String[14];
+            String[] selectionArgs = new String[UNIQUE_KEY_SIZE];
             selectionArgs[i++] = row.getAsString(Telephony.Carriers.NUMERIC);
             selectionArgs[i++] = row.getAsString(Telephony.Carriers.MCC);
             selectionArgs[i++] = row.getAsString(Telephony.Carriers.MNC);
@@ -1337,6 +1340,10 @@ public class TelephonyProvider extends ContentProvider
                     row.getAsString(Telephony.Carriers.MMSPORT) : "";
             selectionArgs[i++] = row.containsKey(Telephony.Carriers.MMSC) ?
                     row.getAsString(Telephony.Carriers.MMSC) : "";
+            selectionArgs[i++] = row.containsKey(Telephony.Carriers.PROTOCOL) ?
+                    row.getAsString(Telephony.Carriers.PROTOCOL) : "IP";
+            selectionArgs[i++] = row.containsKey(Telephony.Carriers.ROAMING_PROTOCOL) ?
+                    row.getAsString(Telephony.Carriers.ROAMING_PROTOCOL) : "IP";
             selectionArgs[i++] = row.containsKey(Telephony.Carriers.CARRIER_ENABLED) &&
                     (row.getAsString(Telephony.Carriers.CARRIER_ENABLED).equals("0") ||
                             row.getAsString(Telephony.Carriers.CARRIER_ENABLED).equals("false")) ?
@@ -1349,6 +1356,8 @@ public class TelephonyProvider extends ContentProvider
                     row.getAsString(Telephony.Carriers.MVNO_MATCH_DATA) : "";
             selectionArgs[i++] = row.containsKey(Telephony.Carriers.PROFILE_ID) ?
                     row.getAsString(Telephony.Carriers.PROFILE_ID) : "0";
+
+            if (VDBG) log("dbh.selectConflictingRow:- selectionArgs" + Arrays.toString(selectionArgs));
 
             Cursor c = db.query(table, columns, selection, selectionArgs, null, null, null);
 
